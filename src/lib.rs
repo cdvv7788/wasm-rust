@@ -1,5 +1,6 @@
 mod utils;
 
+extern crate rand;
 extern crate web_sys;
 
 // A macro to provide `println!(..)`-style syntax for `console.log` logging.
@@ -9,6 +10,7 @@ macro_rules! log {
     }
 }
 
+use rand::Rng;
 use std::fmt;
 use wasm_bindgen::prelude::*;
 
@@ -86,6 +88,35 @@ impl Universe {
         self.cells.as_ptr()
     }
 
+    pub fn reset_dead(&mut self) {
+        let mut next = self.cells.clone();
+        for row in 0..self.height {
+            for col in 0..self.width {
+                let idx = self.get_index(row, col);
+                next[idx] = Cell::Dead;
+            }
+        }
+        self.cells = next;
+    }
+
+    pub fn reset_random(&mut self) {
+        let mut next = self.cells.clone();
+        let mut rng = rand::thread_rng();
+        for row in 0..self.height {
+            for col in 0..self.width {
+                let idx = self.get_index(row, col);
+                next[idx] = Cell::Dead;
+                let random = rng.gen_range(0, 2);
+                if random == 0 {
+                    next[idx] = Cell::Dead;
+                } else {
+                    next[idx] = Cell::Alive;
+                }
+            }
+        }
+        self.cells = next;
+    }
+
     pub fn tick(&mut self) {
         let mut next = self.cells.clone();
 
@@ -157,6 +188,11 @@ impl Universe {
         self.height = height;
         self.cells = (0..self.width * height).map(|_i| Cell::Dead).collect();
     }
+
+    pub fn toggle_cell(&mut self, row: u32, column: u32) {
+        let idx = self.get_index(row, column);
+        self.cells[idx].toggle();
+    }
 }
 
 impl fmt::Display for Universe {
@@ -170,5 +206,14 @@ impl fmt::Display for Universe {
         }
 
         Ok(())
+    }
+}
+
+impl Cell {
+    fn toggle(&mut self) {
+        *self = match *self {
+            Cell::Dead => Cell::Alive,
+            Cell::Alive => Cell::Dead,
+        };
     }
 }
